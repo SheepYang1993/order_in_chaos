@@ -21,16 +21,30 @@ class HomePage extends StatelessWidget {
                 tooltip: '清除画板',
                 icon: const Icon(Icons.refresh),
                 onPressed: () {
-                  controller.state.controller.clearPoints();
+                  controller.clearPoints();
                 },
               ),
             ],
           ),
-          // drawer: const Drawer(
-          //   child: Center(
-          //     child: Text('菜单'),
-          //   ),
-          // ),
+          drawer: Drawer(
+            child: Column(
+              children: [
+                const SizedBox(height: kToolbarHeight),
+                Slider(
+                  label: '刷新间隔(${controller.state.timerTick.toInt()}毫秒)',
+                  max: 990,
+                  min: 0,
+                  divisions: 991,
+                  activeColor: Colors.green,
+                  inactiveColor: Colors.grey,
+                  value: controller.state.timerTick - 10,
+                  onChanged: (double value) {
+                    controller.timerTick = 10 + value;
+                  },
+                ),
+              ],
+            ),
+          ),
           body: Stack(
             children: [
               TextField(
@@ -59,9 +73,15 @@ class HomePage extends StatelessWidget {
                         child: FloatingActionButton(
                           tooltip: '取2点中间值，开始变化',
                           onPressed: () {
-                            controller.state.controller.changeAllPoint();
+                            if (controller.state.timer == null) {
+                              controller.startChange();
+                            } else {
+                              controller.stopChange();
+                            }
                           },
-                          child: const Icon(Icons.play_arrow),
+                          child: (controller.state.timer == null)
+                              ? const Icon(Icons.play_arrow)
+                              : const Icon(Icons.pause),
                         ),
                       ),
                       Expanded(

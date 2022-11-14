@@ -39,19 +39,12 @@ class _OrderInChaosViewState extends State<OrderInChaosView> {
         );
     widget.controller?.size = size;
     return Scaffold(
-      body: Transform.scale(
-        scaleX: widget.controller?.scaleX ?? 0,
-        scaleY: widget.controller?.scaleY ?? 0,
-        child: Transform.translate(
-          offset: Offset(
-            // widget.controller?.translationX ?? 0,
-            // widget.controller?.translationY ?? 0,
-            0, 0,
-          ),
-          child: CustomPaint(
-            size: size,
-            painter: OrderInChaos(points: widget.controller?.points),
-          ),
+      body: InteractiveViewer(
+        maxScale: 20,
+        transformationController: widget.controller?.transformationController,
+        child: CustomPaint(
+          size: size,
+          painter: OrderInChaos(points: widget.controller?.points),
         ),
       ),
     );
@@ -96,12 +89,10 @@ class OrderInChaos extends CustomPainter {
 }
 
 class OrderInChaosController extends ChangeNotifier {
+  TransformationController transformationController =
+      TransformationController();
   double padding = 30;
   double paddingBottom = 60;
-  double translationX = 0;
-  double translationY = 0;
-  double scaleX = 1;
-  double scaleY = 1;
   final Random _random = Random();
   List<List<Offset>> points = [];
 
@@ -131,10 +122,7 @@ class OrderInChaosController extends ChangeNotifier {
       points[i] = [];
     }
     points = [];
-    scaleX = 1;
-    scaleY = 1;
-    translationX = 0;
-    translationY = 0;
+    transformationController.value = Matrix4.identity();
     notifyListeners();
   }
 
@@ -142,10 +130,6 @@ class OrderInChaosController extends ChangeNotifier {
     List<Offset> lastList = _getLastPointList();
     if (lastList.isNotEmpty) {
       _getLastPointList().removeLast();
-      scaleX = 1;
-      scaleY = 1;
-      translationX = 0;
-      translationY = 0;
       notifyListeners();
     }
   }
@@ -160,11 +144,11 @@ class OrderInChaosController extends ChangeNotifier {
       showToast('至少添加3个点');
       return;
     }
-    double leftOld = lastList[0].dx;
-    double topOld = lastList[0].dy;
-    double rightOld = lastList[0].dx;
-    double bottomOld = lastList[0].dy;
     List<Offset> firstList = _getFirstPointList();
+    double leftOld = firstList[0].dx;
+    double topOld = firstList[0].dy;
+    double rightOld = firstList[0].dx;
+    double bottomOld = firstList[0].dy;
     for (int i = 0; i < firstList.length; i++) {
       Offset item = firstList[i];
       if (item.dx < leftOld) {
@@ -210,19 +194,6 @@ class OrderInChaosController extends ChangeNotifier {
       if (newItem.dy > bottomNew) {
         bottomNew = newItem.dy;
       }
-      scaleX = (rightOld - leftOld) / (rightNew - leftNew);
-      scaleY = (bottomOld - topOld) / (bottomNew - topNew);
-      double width = _size!.width;
-      double height = _size!.height - kToolbarHeight;
-      translationX =
-          ((width - 2 * padding) - (rightNew - leftNew) * scaleX) / 2;
-      translationY =
-          ((height - padding - paddingBottom) - (bottomNew - topNew) * scaleY) /
-              2;
-
-      debugPrint(
-        'scaleX:$scaleX, scaleY:$scaleY, translationX:$translationX, translationY:$translationY',
-      );
       newList.add(newItem);
     }
     points.add(newList);
@@ -241,10 +212,6 @@ class OrderInChaosController extends ChangeNotifier {
         _random.nextInt((height - padding - paddingBottom).toInt()).toDouble() +
             padding;
     _getLastPointList().add(Offset(dx, dy));
-    scaleX = 1;
-    scaleY = 1;
-    translationX = 0;
-    translationY = 0;
 
     notifyListeners();
   }
@@ -255,10 +222,7 @@ class OrderInChaosController extends ChangeNotifier {
       points[i] = [];
     }
     points = [];
-    scaleX = 1;
-    scaleY = 1;
-    translationX = 0;
-    translationY = 0;
+    transformationController.value = Matrix4.identity();
     super.dispose();
   }
 }
