@@ -8,11 +8,15 @@ import '../utils/toast_util.dart';
 class OrderInChaosView extends StatefulWidget {
   final OrderInChaosController? controller;
   final Size? size;
+  final double? dotSize;
+  final double? lineWidth;
 
   const OrderInChaosView({
     super.key,
     this.controller,
     this.size,
+    this.dotSize,
+    this.lineWidth,
   });
 
   @override
@@ -21,6 +25,7 @@ class OrderInChaosView extends StatefulWidget {
 
 class _OrderInChaosViewState extends State<OrderInChaosView> {
   late Size size;
+  TapDownDetails? _details;
 
   @override
   void initState() {
@@ -39,12 +44,26 @@ class _OrderInChaosViewState extends State<OrderInChaosView> {
         );
     widget.controller?.size = size;
     return Scaffold(
-      body: InteractiveViewer(
-        maxScale: 20,
-        transformationController: widget.controller?.transformationController,
-        child: CustomPaint(
-          size: size,
-          painter: OrderInChaos(points: widget.controller?.points),
+      body: GestureDetector(
+        onTapDown: (TapDownDetails details) {
+          _details = details;
+        },
+        onTap: () {
+          if (_details != null) {
+            widget.controller?.addPoint(point: _details!.localPosition);
+          }
+        },
+        child: InteractiveViewer(
+          maxScale: 20,
+          transformationController: widget.controller?.transformationController,
+          child: CustomPaint(
+            size: size,
+            painter: OrderInChaos(
+              points: widget.controller?.points,
+              dotSize: widget.dotSize,
+              lineWidth: widget.lineWidth,
+            ),
+          ),
         ),
       ),
     );
@@ -53,24 +72,33 @@ class _OrderInChaosViewState extends State<OrderInChaosView> {
 
 class OrderInChaos extends CustomPainter {
   List<List<Offset>>? points;
+  final double? dotSize;
+  final double? lineWidth;
 
-  OrderInChaos({this.points});
+  OrderInChaos({
+    this.points,
+    this.dotSize,
+    this.lineWidth,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawColor(Colors.transparent, BlendMode.color);
-    Paint paint1 = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.fill
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 2.0
-      ..isAntiAlias = true;
-    Paint paint2 = Paint()
-      ..color = Colors.yellow
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0
-      ..isAntiAlias = true;
+    drawBackgroundLine(canvas, size);
+
     if (points?.isNotEmpty ?? false) {
+      Paint paint1 = Paint()
+        ..color = Colors.black
+        ..style = PaintingStyle.fill
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = dotSize ?? 5.0
+        ..isAntiAlias = true;
+      Paint paint2 = Paint()
+        ..color = Colors.yellow
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = lineWidth ?? 2.0
+        ..isAntiAlias = true;
+
       List<Offset> list = points!.last;
 
       Path path = Path();
@@ -79,12 +107,69 @@ class OrderInChaos extends CustomPainter {
 
       canvas.drawPoints(PointMode.points, list, paint1);
     }
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint2);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
+  }
+
+  void drawBackgroundLine(Canvas canvas, Size size) {
+    int widthLineCount = 19;
+    Paint paint1 = Paint()
+      ..color = const Color(0xffBCBCBC)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..isAntiAlias = true;
+    Paint paint2 = Paint()
+      ..color = Colors.blue
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..isAntiAlias = true;
+    final width = size.width;
+    final height = size.height;
+    num itemWidth = width / widthLineCount;
+    num heightCount = height / itemWidth;
+    debugPrint(
+        'width:$width, height:$height, itemWidth:$itemWidth, heightCount:$heightCount');
+    // 绘制竖线
+    for (int i = 0; i < widthLineCount; i++) {
+      double x = (i + 1) * itemWidth.toDouble();
+      bool isMiddle = i + 1 == (widthLineCount + 1) / 2;
+      canvas.drawLine(
+        Offset(
+          x,
+          0,
+        ),
+        Offset(
+          x,
+          height,
+        ),
+        isMiddle ? paint2 : paint1,
+      );
+    }
+
+    // 绘制横线
+    for (int i = 0; i < heightCount; i++) {
+      double y = (i + 1) * itemWidth.toDouble();
+      bool isMiddle = false;
+      if (heightCount.toInt() % 2 == 0) {
+        isMiddle = i + 1 == heightCount.toInt() / 2;
+      } else {
+        isMiddle = i + 1 == (heightCount.toInt() + 1) / 2;
+      }
+      canvas.drawLine(
+        Offset(
+          0,
+          y,
+        ),
+        Offset(
+          width,
+          y,
+        ),
+        isMiddle ? paint2 : paint1,
+      );
+    }
   }
 }
 
@@ -108,13 +193,6 @@ class OrderInChaosController extends ChangeNotifier {
       points.add([]);
     }
     return points.last;
-  }
-
-  List<Offset> _getFirstPointList() {
-    if (points.isEmpty) {
-      points.add([]);
-    }
-    return points.first;
   }
 
   void clearPoints() {
@@ -144,32 +222,8 @@ class OrderInChaosController extends ChangeNotifier {
       showToast('至少添加3个点');
       return;
     }
-    List<Offset> firstList = _getFirstPointList();
-    double leftOld = firstList[0].dx;
-    double topOld = firstList[0].dy;
-    double rightOld = firstList[0].dx;
-    double bottomOld = firstList[0].dy;
-    for (int i = 0; i < firstList.length; i++) {
-      Offset item = firstList[i];
-      if (item.dx < leftOld) {
-        leftOld = item.dx;
-      }
-      if (item.dx > rightOld) {
-        rightOld = item.dx;
-      }
-      if (item.dy < topOld) {
-        topOld = item.dy;
-      }
-      if (item.dy > bottomOld) {
-        bottomOld = item.dy;
-      }
-    }
 
     List<Offset> newList = [];
-    double leftNew = lastList[0].dx;
-    double topNew = lastList[0].dy;
-    double rightNew = lastList[0].dx;
-    double bottomNew = lastList[0].dy;
     for (int i = 0; i < lastList.length; i++) {
       Offset itemPre = lastList[i];
       Offset itemNext;
@@ -182,36 +236,29 @@ class OrderInChaosController extends ChangeNotifier {
       Offset newItem = Offset(
           (itemPre.dx + itemNext.dx) / 2, (itemPre.dy + itemNext.dy) / 2);
 
-      if (newItem.dx < leftNew) {
-        leftNew = newItem.dx;
-      }
-      if (newItem.dx > rightNew) {
-        rightNew = newItem.dx;
-      }
-      if (newItem.dy < topNew) {
-        topNew = newItem.dy;
-      }
-      if (newItem.dy > bottomNew) {
-        bottomNew = newItem.dy;
-      }
       newList.add(newItem);
     }
     points.add(newList);
+    points.removeAt(0);
     notifyListeners();
   }
 
-  void addPoint() {
-    if (_size == null) {
-      return;
+  void addPoint({Offset? point}) {
+    if (point == null) {
+      if (_size == null) {
+        return;
+      }
+      double width = _size!.width;
+      double height = _size!.height - kToolbarHeight;
+      double dx =
+          _random.nextInt((width - 2 * padding).toInt()).toDouble() + padding;
+      double dy = _random
+              .nextInt((height - padding - paddingBottom).toInt())
+              .toDouble() +
+          padding;
+      point = Offset(dx, dy);
     }
-    double width = _size!.width;
-    double height = _size!.height - kToolbarHeight;
-    double dx =
-        _random.nextInt((width - 2 * padding).toInt()).toDouble() + padding;
-    double dy =
-        _random.nextInt((height - padding - paddingBottom).toInt()).toDouble() +
-            padding;
-    _getLastPointList().add(Offset(dx, dy));
+    _getLastPointList().add(point);
 
     notifyListeners();
   }

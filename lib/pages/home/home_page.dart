@@ -28,18 +28,57 @@ class HomePage extends StatelessWidget {
           ),
           drawer: Drawer(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: kToolbarHeight),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Text('刷新间隔(${controller.state.timerTick.toInt()}毫秒)'),
+                ),
                 Slider(
                   label: '刷新间隔(${controller.state.timerTick.toInt()}毫秒)',
                   max: 990,
                   min: 0,
                   divisions: 991,
-                  activeColor: Colors.green,
-                  inactiveColor: Colors.grey,
+                  activeColor: Colors.blue,
+                  inactiveColor: Colors.blue[100],
                   value: controller.state.timerTick - 10,
                   onChanged: (double value) {
                     controller.timerTick = 10 + value;
+                  },
+                ),
+                const SizedBox(height: 30),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Text('圆点大小(${controller.state.dotSize.toInt()})'),
+                ),
+                Slider(
+                  label: '圆点大小(${controller.state.dotSize.toInt()})',
+                  max: 50,
+                  min: 1,
+                  divisions: 51,
+                  activeColor: Colors.blue,
+                  inactiveColor: Colors.blue[100],
+                  value: controller.state.dotSize,
+                  onChanged: (double value) {
+                    controller.dotSize = value;
+                  },
+                ),
+                const SizedBox(height: 30),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Text('连线粗细(${controller.state.lineWidth.toInt()})'),
+                ),
+                Slider(
+                  label: '连线粗细(${controller.state.lineWidth.toInt()})',
+                  max: 50,
+                  min: 1,
+                  divisions: 51,
+                  activeColor: Colors.blue,
+                  inactiveColor: Colors.blue[100],
+                  value: controller.state.lineWidth,
+                  onChanged: (double value) {
+                    controller.lineWidth = value;
                   },
                 ),
               ],
@@ -47,11 +86,10 @@ class HomePage extends StatelessWidget {
           ),
           body: Stack(
             children: [
-              TextField(
-                controller: TextEditingController(),
-              ),
               OrderInChaosView(
                 controller: controller.state.controller,
+                dotSize: controller.state.dotSize,
+                lineWidth: controller.state.lineWidth,
               ),
               Align(
                 alignment: Alignment.bottomCenter,

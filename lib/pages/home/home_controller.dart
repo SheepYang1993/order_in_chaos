@@ -9,6 +9,17 @@ class HomeController extends GetxController {
 
   set timerTick(double timerTick) {
     state.timerTick = timerTick;
+    stopChange();
+    update();
+  }
+
+  set dotSize(double dotSize) {
+    state.dotSize = dotSize;
+    update();
+  }
+
+  set lineWidth(double lineWidth) {
+    state.lineWidth = lineWidth;
     update();
   }
 
