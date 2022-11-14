@@ -23,6 +23,7 @@ class HomeController extends GetxController {
     update();
   }
 
+  /// 创建计时器，不断地计算中间值
   void startChange() {
     if (state.timer != null) {
       return;
@@ -37,6 +38,7 @@ class HomeController extends GetxController {
     update();
   }
 
+  /// 停止计时器
   void stopChange() {
     state.timer?.cancel();
     state.timer = null;
