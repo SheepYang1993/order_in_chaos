@@ -24,7 +24,9 @@ class _OrderInChaosViewState extends State<OrderInChaosView> {
 
   @override
   void initState() {
-    widget.controller?.addListener(() {});
+    widget.controller?.addListener(() {
+      setState(() {});
+    });
     super.initState();
   }
 
@@ -37,9 +39,20 @@ class _OrderInChaosViewState extends State<OrderInChaosView> {
         );
     widget.controller?.size = size;
     return Scaffold(
-      body: CustomPaint(
-        size: size,
-        painter: OrderInChaos(points: widget.controller?.points),
+      body: Transform.scale(
+        scaleX: widget.controller?.scaleX ?? 0,
+        scaleY: widget.controller?.scaleY ?? 0,
+        child: Transform.translate(
+          offset: Offset(
+            // widget.controller?.translationX ?? 0,
+            // widget.controller?.translationY ?? 0,
+            0, 0,
+          ),
+          child: CustomPaint(
+            size: size,
+            painter: OrderInChaos(points: widget.controller?.points),
+          ),
+        ),
       ),
     );
   }
@@ -52,24 +65,28 @@ class OrderInChaos extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.drawColor(Colors.transparent, BlendMode.color);
+    Paint paint1 = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 2.0
+      ..isAntiAlias = true;
+    Paint paint2 = Paint()
+      ..color = Colors.yellow
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..isAntiAlias = true;
     if (points?.isNotEmpty ?? false) {
-      Paint paint1 = Paint()
-        ..color = Colors.black
-        ..style = PaintingStyle.fill
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = 6.0
-        ..isAntiAlias = true;
-      Paint paint2 = Paint()
-        ..color = Colors.yellow
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..isAntiAlias = true;
       List<Offset> list = points!.last;
-      canvas.drawPoints(PointMode.points, list, paint1);
+
       Path path = Path();
       path.addPolygon(list, true);
       canvas.drawPath(path, paint2);
+
+      canvas.drawPoints(PointMode.points, list, paint1);
     }
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint2);
   }
 
   @override
@@ -79,16 +96,34 @@ class OrderInChaos extends CustomPainter {
 }
 
 class OrderInChaosController extends ChangeNotifier {
+  double padding = 30;
+  double paddingBottom = 60;
+  double translationX = 0;
+  double translationY = 0;
+  double scaleX = 1;
+  double scaleY = 1;
   final Random _random = Random();
   List<List<Offset>> points = [];
 
-  late Size size;
+  Size? _size;
 
-  List<Offset> _getPointList() {
+  set size(Size value) {
+    _size = value;
+    notifyListeners();
+  }
+
+  List<Offset> _getLastPointList() {
     if (points.isEmpty) {
       points.add([]);
     }
     return points.last;
+  }
+
+  List<Offset> _getFirstPointList() {
+    if (points.isEmpty) {
+      points.add([]);
+    }
+    return points.first;
   }
 
   void clearPoints() {
@@ -96,39 +131,98 @@ class OrderInChaosController extends ChangeNotifier {
       points[i] = [];
     }
     points = [];
+    scaleX = 1;
+    scaleY = 1;
+    translationX = 0;
+    translationY = 0;
     notifyListeners();
   }
 
   void removePoint() {
-    List<Offset> oldList = _getPointList();
-    if (oldList.isNotEmpty) {
-      _getPointList().removeLast();
+    List<Offset> lastList = _getLastPointList();
+    if (lastList.isNotEmpty) {
+      _getLastPointList().removeLast();
+      scaleX = 1;
+      scaleY = 1;
+      translationX = 0;
+      translationY = 0;
       notifyListeners();
     }
   }
 
   void changeAllPoint() {
-    List<Offset> oldList = _getPointList();
-    if (oldList.isEmpty) {
+    List<Offset> lastList = _getLastPointList();
+    if (lastList.isEmpty) {
       showToast('请添加点');
       return;
     }
-    if (oldList.length < 3) {
+    if (lastList.length < 3) {
       showToast('至少添加3个点');
       return;
     }
+    double leftOld = lastList[0].dx;
+    double topOld = lastList[0].dy;
+    double rightOld = lastList[0].dx;
+    double bottomOld = lastList[0].dy;
+    List<Offset> firstList = _getFirstPointList();
+    for (int i = 0; i < firstList.length; i++) {
+      Offset item = firstList[i];
+      if (item.dx < leftOld) {
+        leftOld = item.dx;
+      }
+      if (item.dx > rightOld) {
+        rightOld = item.dx;
+      }
+      if (item.dy < topOld) {
+        topOld = item.dy;
+      }
+      if (item.dy > bottomOld) {
+        bottomOld = item.dy;
+      }
+    }
+
     List<Offset> newList = [];
-    for (int i = 0; i < oldList.length; i++) {
-      Offset itemPre = oldList[i];
+    double leftNew = lastList[0].dx;
+    double topNew = lastList[0].dy;
+    double rightNew = lastList[0].dx;
+    double bottomNew = lastList[0].dy;
+    for (int i = 0; i < lastList.length; i++) {
+      Offset itemPre = lastList[i];
       Offset itemNext;
-      if (i == oldList.length - 1) {
-        itemNext = oldList[0];
+      if (i == lastList.length - 1) {
+        itemNext = lastList[0];
       } else {
-        itemNext = oldList[i];
+        itemNext = lastList[i + 1];
       }
 
       Offset newItem = Offset(
           (itemPre.dx + itemNext.dx) / 2, (itemPre.dy + itemNext.dy) / 2);
+
+      if (newItem.dx < leftNew) {
+        leftNew = newItem.dx;
+      }
+      if (newItem.dx > rightNew) {
+        rightNew = newItem.dx;
+      }
+      if (newItem.dy < topNew) {
+        topNew = newItem.dy;
+      }
+      if (newItem.dy > bottomNew) {
+        bottomNew = newItem.dy;
+      }
+      scaleX = (rightOld - leftOld) / (rightNew - leftNew);
+      scaleY = (bottomOld - topOld) / (bottomNew - topNew);
+      double width = _size!.width;
+      double height = _size!.height - kToolbarHeight;
+      translationX =
+          ((width - 2 * padding) - (rightNew - leftNew) * scaleX) / 2;
+      translationY =
+          ((height - padding - paddingBottom) - (bottomNew - topNew) * scaleY) /
+              2;
+
+      debugPrint(
+        'scaleX:$scaleX, scaleY:$scaleY, translationX:$translationX, translationY:$translationY',
+      );
       newList.add(newItem);
     }
     points.add(newList);
@@ -136,14 +230,22 @@ class OrderInChaosController extends ChangeNotifier {
   }
 
   void addPoint() {
-    double padding = 30;
-    double width = size.width;
-    double height = size.height;
+    if (_size == null) {
+      return;
+    }
+    double width = _size!.width;
+    double height = _size!.height - kToolbarHeight;
     double dx =
         _random.nextInt((width - 2 * padding).toInt()).toDouble() + padding;
     double dy =
-        _random.nextInt((height - 2 * padding).toInt()).toDouble() + padding;
-    _getPointList().add(Offset(dx, dy));
+        _random.nextInt((height - padding - paddingBottom).toInt()).toDouble() +
+            padding;
+    _getLastPointList().add(Offset(dx, dy));
+    scaleX = 1;
+    scaleY = 1;
+    translationX = 0;
+    translationY = 0;
+
     notifyListeners();
   }
 
@@ -153,6 +255,10 @@ class OrderInChaosController extends ChangeNotifier {
       points[i] = [];
     }
     points = [];
+    scaleX = 1;
+    scaleY = 1;
+    translationX = 0;
+    translationY = 0;
     super.dispose();
   }
 }

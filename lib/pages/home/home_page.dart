@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:order_in_chaos/widget/order_in_chaos_view.dart';
 
-import '../../widget/coordinate_view.dart';
 import 'home_controller.dart';
 
 class HomePage extends StatelessWidget {
@@ -37,7 +36,6 @@ class HomePage extends StatelessWidget {
               TextField(
                 controller: TextEditingController(),
               ),
-              CoordinateView(),
               OrderInChaosView(
                 controller: controller.state.controller,
               ),
